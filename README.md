@@ -6,6 +6,7 @@ Just a simple dnsx output ipv4 python parser.
 workflow:
 ```
 git clone https://github.com/sikoslike-the-greatest/xyuarserx.git
+cd xyuarserx
 chmod +x xyuarser
 subfinder -d $domain | dnsx -re | ./xyuarserx
 ```
