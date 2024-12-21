@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+import re
+import argparse
+from ipaddress import ip_address
+import sys
+from colorama import Fore, Style
+
+
+def clean_ansi(text):
+    """delete ANSI escape from input text"""
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    return ansi_escape.sub('', text)
+
+
+def sort_dns_records(input_text):
+    # Очищаем текст от ANSI escape-последовательностей
+    clean_text = clean_ansi(input_text)
+    
+    # Парсим записи
+    records = []
+    for line in clean_text.strip().split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Простой парсинг по частям
+        try:
+            hostname = line.split(' [A] [')[0].strip()
+            ip = line.split(' [A] [')[1].strip(']').strip()
+            ip_obj = ip_address(ip)
+            records.append((hostname, ip, ip_obj))
+        except Exception as e:
+            print(f"Failed to parse line: '{line}'")
+            continue
+
+    # Сортируем записи по IP
+    sorted_records = sorted(records, key=lambda x: x[2])
+    
+    # Форматируем вывод
+    print("LOOPBACK:")
+    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_loopback))
+    print("PRIVATE:")
+    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_private))
+    print("GLOBAL:")
+    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_global))
+
+def main():
+    print(r'''                                          
+ __  ___   _ _   _  __ _ _ __ ___  ___ _ ____  __
+ \ \/ / | | | | | |/ _` | '__/ __|/ _ \ '__\ \/ /
+  >  <| |_| | |_| | (_| | |  \__ \  __/ |   >  < 
+ /_/\_\\__, |\__,_|\__,_|_|  |___/\___|_|  /_/\_\
+       |___/                                     
+                    made by sikoslike-the-greatest
+
+
+    ''')
+    parser = argparse.ArgumentParser(description="dnsx parser, load file, or use pipeline")
+    parser.add_argument("-l", "--load", metavar="input_file", type=str, help="dnsx standart output file")
+    args = parser.parse_args()
+
+    if args.load:
+        try:
+            with open(args.load, 'r', encoding='utf-8') as file:
+                input_text = file.read()
+        except FileNotFoundError:
+            print(f"file {args.load} not found")
+            sys.exit(1)
+    else:
+        input_text = sys.stdin.read()
+        
+    sort_dns_records(input_text)
+
+if __name__ == "__main__":
+    main()
