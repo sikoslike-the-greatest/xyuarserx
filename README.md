@@ -7,7 +7,7 @@ workflow:
 ```
 git clone https://github.com/sikoslike-the-greatest/xyuarserx.git
 cd xyuarserx
-chmod +x xyuarser
+chmod +x xyuarserx
 subfinder -d $domain | dnsx -re | ./xyuarserx
 ```
 ![poc](poc.gif)
