@@ -12,8 +12,27 @@ def clean_ansi(text):
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', text)
 
+def ro_sort_dns_records(input_text, lo, priv, glob, silent):
+    # Парсим только айпишники в ro моде dnsx
+    records = []
+    for ip in input_text.split('\n'):
+        if not ip:
+            continue
+        try:
+            ip_obj = ip_address(ip)
+            records.append((ip, ip_obj))
+        except Exception as e:
+            print(f"Failed to parse ip: '{ip}'")
+            continue
+    sorted_records = sorted(records, key=lambda x: x[1])
+    print("LOOPBACK:") if not silent and not lo else None
+    print('\n'.join(ip for ip, _ in sorted_records if _.is_loopback)) if not lo else None
+    print("PRIVATE:") if not silent and not priv else None
+    print('\n'.join(ip for ip, _ in sorted_records if _.is_private)) if not priv else None
+    print("GLOBAL:") if not silent and not glob else None
+    print('\n'.join(ip for ip, _ in sorted_records if _.is_global)) if not glob else None
 
-def sort_dns_records(input_text):
+def sort_dns_records(input_text, lo, priv, glob, silent):
     # Очищаем текст от ANSI escape-последовательностей
     clean_text = clean_ansi(input_text)
     
@@ -38,12 +57,12 @@ def sort_dns_records(input_text):
     sorted_records = sorted(records, key=lambda x: x[2])
     
     # Форматируем вывод
-    print("LOOPBACK:")
-    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_loopback))
-    print("PRIVATE:")
-    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_private))
-    print("GLOBAL:")
-    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_global))
+    print("LOOPBACK:") if not silent and not lo else None
+    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_loopback)) if not lo else None
+    print("PRIVATE:") if not silent and not priv else None
+    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_private)) if not priv else None
+    print("GLOBAL:") if not silent and not glob else None
+    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_global)) if not glob else None
 
 def main():
     print(r'''                                          
@@ -56,8 +75,14 @@ def main():
 
 
     ''', file=sys.stderr)
-    parser = argparse.ArgumentParser(description="dnsx parser, load file, or use pipeline")
-    parser.add_argument("-l", "--load", metavar="input_file", type=str, help="dnsx standart output file")
+    parser = argparse.ArgumentParser(description="dnsx parser, load file, or use pipeline (you can combine -lpgs flags)")
+    parser.add_argument("-f", "--load", metavar="input_file", type=str, help="dnsx standart output file")
+    parser.add_argument("-ro", action="store_true", help="use with dnsx -ro flag")
+    parser.add_argument("-l", action="store_true", help="dont show loopback ips")
+    parser.add_argument("-p", action="store_true", help="dont show private ips")
+    parser.add_argument("-g", action="store_true", help="dont show global ips")
+    parser.add_argument("-s", action="store_true", help="silent (dont show comments like GLOBAL)")
+
     args = parser.parse_args()
 
     if args.load:
@@ -69,8 +94,11 @@ def main():
             sys.exit(1)
     else:
         input_text = sys.stdin.read()
-        
-    sort_dns_records(input_text)
+    
+    if args.ro:
+        ro_sort_dns_records(input_text, args.l, args.p, args.g, args.s)
+    else:
+        sort_dns_records(input_text, args.l, args.p, args.g, args.s)
 
 if __name__ == "__main__":
     main()
