@@ -55,7 +55,7 @@ def main():
                     made by sikoslike-the-greatest
 
 
-    ''')
+    ''', file=sys.stderr)
     parser = argparse.ArgumentParser(description="dnsx parser, load file, or use pipeline")
     parser.add_argument("-l", "--load", metavar="input_file", type=str, help="dnsx standart output file")
     args = parser.parse_args()
