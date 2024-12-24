@@ -1,5 +1,6 @@
 # xyuarserx
 Just a simple dnsx output ipv4 python parser.
+If doesnt work, try use -nc flag in dnsx
 
 `-l <file>` to input from file (made with `dnsx -re > file`);
 `-ro` use this flag with `dnsx -ro` input;
