@@ -12,7 +12,7 @@ def clean_ansi(text):
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', text)
 
-def ro_sort_dns_records(input_text, lo, priv, glob, silent):
+def ro_sort_dns_records(input_text, lo, priv, glob, silent, domains_only):
     # Парсим только айпишники в ro моде dnsx
     records = []
     for ip in input_text.split('\n'):
@@ -25,6 +25,12 @@ def ro_sort_dns_records(input_text, lo, priv, glob, silent):
             print(f"Failed to parse ip: '{ip}'")
             continue
     sorted_records = sorted(records, key=lambda x: x[1])
+    
+    if domains_only:
+        # В режиме ro нет хостнеймов, поэтому выводим сообщение
+        print("No hostnames available in -ro mode", file=sys.stderr)
+        return
+        
     print("LOOPBACK:") if not silent and not lo else None
     print('\n'.join(ip for ip, _ in sorted_records if _.is_loopback)) if not lo else None
     print("PRIVATE:") if not silent and not priv else None
@@ -32,7 +38,7 @@ def ro_sort_dns_records(input_text, lo, priv, glob, silent):
     print("GLOBAL:") if not silent and not glob else None
     print('\n'.join(ip for ip, _ in sorted_records if _.is_global)) if not glob else None
 
-def sort_dns_records(input_text, lo, priv, glob, silent):
+def sort_dns_records(input_text, lo, priv, glob, silent, domains_only):
     # Очищаем текст от ANSI escape-последовательностей
     clean_text = clean_ansi(input_text)
     
@@ -56,7 +62,20 @@ def sort_dns_records(input_text, lo, priv, glob, silent):
     # Сортируем записи по IP
     sorted_records = sorted(records, key=lambda x: x[2])
     
-    # Форматируем вывод
+    if domains_only:
+        loopback = [hostname for hostname, _, ip_obj in sorted_records if ip_obj.is_loopback]
+        private = [hostname for hostname, _, ip_obj in sorted_records if ip_obj.is_private]
+        global_ips = [hostname for hostname, _, ip_obj in sorted_records if ip_obj.is_global]
+        
+        print("LOOPBACK:") if not silent and not lo and loopback else None
+        print('\n'.join(loopback)) if not lo else None
+        print("PRIVATE:") if not silent and not priv and private else None
+        print('\n'.join(private)) if not priv else None
+        print("GLOBAL:") if not silent and not glob and global_ips else None
+        print('\n'.join(global_ips)) if not glob else None
+        return
+    
+    # Форматируем вывод с IP
     print("LOOPBACK:") if not silent and not lo else None
     print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_loopback)) if not lo else None
     print("PRIVATE:") if not silent and not priv else None
@@ -82,6 +101,7 @@ def main():
     parser.add_argument("-p", action="store_true", help="dont show private ips")
     parser.add_argument("-g", action="store_true", help="dont show global ips")
     parser.add_argument("-s", action="store_true", help="silent (dont show comments like GLOBAL)")
+    parser.add_argument("-d", action="store_true", help="show only hostnames without IP addresses")
 
     args = parser.parse_args()
 
@@ -96,9 +116,9 @@ def main():
         input_text = sys.stdin.read()
     
     if args.ro:
-        ro_sort_dns_records(input_text, args.l, args.p, args.g, args.s)
+        ro_sort_dns_records(input_text, args.l, args.p, args.g, args.s, args.d)
     else:
-        sort_dns_records(input_text, args.l, args.p, args.g, args.s)
+        sort_dns_records(input_text, args.l, args.p, args.g, args.s, args.d)
 
 if __name__ == "__main__":
     main()
