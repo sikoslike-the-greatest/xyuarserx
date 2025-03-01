@@ -38,7 +38,7 @@ def ro_sort_dns_records(input_text, lo, priv, glob, silent, domains_only):
     print("GLOBAL:") if not silent and not glob else None
     print('\n'.join(ip for ip, _ in sorted_records if _.is_global)) if not glob else None
 
-def sort_dns_records(input_text, lo, priv, glob, silent, domains_only):
+def sort_dns_records(input_text, lo, priv, glob, silent, domains_only, no_color):
     # Очищаем текст от ANSI escape-последовательностей
     clean_text = clean_ansi(input_text)
     
@@ -75,13 +75,27 @@ def sort_dns_records(input_text, lo, priv, glob, silent, domains_only):
         print('\n'.join(global_ips)) if not glob else None
         return
     
-    # Форматируем вывод с IP
+    # Форматируем вывод с IP (с поддержкой отключения цвета)
     print("LOOPBACK:") if not silent and not lo else None
-    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_loopback)) if not lo else None
+    if not lo:
+        if no_color:
+            print('\n'.join(f'[{ip}] {hostname}' for hostname, ip, _ in sorted_records if _.is_loopback))
+        else:
+            print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_loopback))
+    
     print("PRIVATE:") if not silent and not priv else None
-    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_private)) if not priv else None
+    if not priv:
+        if no_color:
+            print('\n'.join(f'[{ip}] {hostname}' for hostname, ip, _ in sorted_records if _.is_private))
+        else:
+            print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_private))
+    
     print("GLOBAL:") if not silent and not glob else None
-    print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_global)) if not glob else None
+    if not glob:
+        if no_color:
+            print('\n'.join(f'[{ip}] {hostname}' for hostname, ip, _ in sorted_records if _.is_global))
+        else:
+            print('\n'.join(f'{f"[{Fore.CYAN}{ip}{Style.RESET_ALL}]":>17} {hostname}' for hostname, ip, _ in sorted_records if _.is_global))
 
 def main():
     print(r'''                                          
@@ -102,6 +116,7 @@ def main():
     parser.add_argument("-g", action="store_true", help="dont show global ips")
     parser.add_argument("-s", action="store_true", help="silent (dont show comments like GLOBAL)")
     parser.add_argument("-d", action="store_true", help="show only hostnames without IP addresses")
+    parser.add_argument("-c", action="store_true", help="disable colored IP addresses")
 
     args = parser.parse_args()
 
@@ -118,7 +133,7 @@ def main():
     if args.ro:
         ro_sort_dns_records(input_text, args.l, args.p, args.g, args.s, args.d)
     else:
-        sort_dns_records(input_text, args.l, args.p, args.g, args.s, args.d)
+        sort_dns_records(input_text, args.l, args.p, args.g, args.s, args.d, args.c)
 
 if __name__ == "__main__":
     main()
