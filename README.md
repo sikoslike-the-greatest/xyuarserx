@@ -7,6 +7,7 @@ If doesnt work, try use -nc flag in dnsx
 `-l/p/g` dont show local/private/global ips;
 `-s` silent (dont show comments between ips like "GLOBAL");
 `-d` flag to show hosts only (useful to match only global names and then spider them with httpx for example)
+`-c` no color
 
 workflow:
 ```
